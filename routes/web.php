@@ -1,22 +1,53 @@
 <?php
-
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DatasetController;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\UserController;
+use App\Models\Event;
+use Symfony\Contracts\Service\Attribute\Required;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\RegistrationController;
+use App\Models\User;
 
 Route::get('/', function () {
-    return view('datasets.index');
+    return view('welcome');
 });
 
+Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
+Route::get('events', [EventController::class, 'publicshow'])->name('events.show');
+Route::get('/contacts', function () {
+  return view('contacts');
+});
 
-Route::get('/', [DatasetController::class, 'index']);
+Route::group(['middleware' => ['auth', 'admin']], function() {
+    Route::get('manage_user', [AdminController::class, 'viewuser'])->name('admin.manage_user');
+    Route::get('/admin/update-role/{id}', [AdminController::class, 'updateRole'])->name('admin.updateRole');
+    Route::get('/admin/revert-role/{id}', [AdminController::class, 'revertRole'])->name('admin.revertRole');
+    Route::get('/admin/delete/{id}', [AdminController::class, 'delete'])->name('admin.deleteUser');
+  });
+
+  Route::group(['middleware' => ['auth', 'organizer']], function() {
+    Route::get('/organizer/create_event', [EventController::class, 'index']);
+    Route::post('/organizer/create_event', [EventController::class, 'store'])->name('organizer.create_event');
+    Route::get('/organizer/create_event', [EventController::class, 'showOrganizerEvents']);
+    Route::get('/organizer/event_list', [EventController::class, 'displayevent'])->name('organizer.event_list');
+    Route::get('/organizer/delete/{id}', [EventController::class, 'delete'])->name('organizer.delete');
+    Route::get('/organizer/edit_event/{id}', [EventController::class, 'edit'])->name('organizer.edit_event');
+    Route::post('/organizer/edit_event/{id}', [EventController::class, 'update'])->name('organizer.update');
+    Route::get('user/event_list', [EventController::class, 'displayevent'])->name('user.event_list');
+  });
+
+  Route::group(['middleware' => ['auth', 'participant']], function() {
+
+    Route::get('participant/event_list', [EventController::class, 'displayevent'])->name('participant.event_list');
+   
+  });
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__ . '/auth.php';
